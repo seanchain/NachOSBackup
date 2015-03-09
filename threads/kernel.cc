@@ -66,13 +66,13 @@ Kernel::Kernel(int argc, char **argv)
             hostName = atoi(argv[i + 1]);
             i++;
         } else if (strcmp(argv[i], "-u") == 0) {
-            cout << "Partial usage: nachos [-rs randomSeed]\n";
-	    cout << "Partial usage: nachos [-s]\n";
-            cout << "Partial usage: nachos [-ci consoleIn] [-co consoleOut]\n";
+            std::cout << "Partial usage: nachos [-rs randomSeed]\n";
+	    std::cout << "Partial usage: nachos [-s]\n";
+            std::cout << "Partial usage: nachos [-ci consoleIn] [-co consoleOut]\n";
 #ifndef FILESYS_STUB
-	    cout << "Partial usage: nachos [-nf]\n";
+	    std::cout << "Partial usage: nachos [-nf]\n";
 #endif
-            cout << "Partial usage: nachos [-n #] [-m #]\n";
+            std::cout << "Partial usage: nachos [-n #] [-m #]\n";
 	}
     }
 }
@@ -170,17 +170,17 @@ void
 Kernel::ConsoleTest() {
     char ch;
 
-    cout << "Testing the console device.\n" 
+    std::cout << "Testing the console device.\n" 
         << "Typed characters will be echoed, until ^D is typed.\n"
         << "Note newlines are needed to flush input through UNIX.\n";
-    cout.flush();
+    std::cout.flush();
 
     do {
         ch = synchConsoleIn->GetChar();
         if(ch != EOF) synchConsoleOut->PutChar(ch);   // echo it!
     } while (ch != EOF);
 
-    cout << "\n";
+    std::cout << "\n";
 
 }
 
@@ -222,9 +222,9 @@ Kernel::NetworkTest() {
 
         // Wait for the first message from the other machine
         postOfficeIn->Receive(0, &inPktHdr, &inMailHdr, buffer);
-        cout << "Got: " << buffer << " : from " << inPktHdr.from << ", box " 
+        std::cout << "Got: " << buffer << " : from " << inPktHdr.from << ", box " 
                                                 << inMailHdr.from << "\n";
-        cout.flush();
+        std::cout.flush();
 
         // Send acknowledgement to the other machine (using "reply to" mailbox
         // in the message that just arrived
@@ -235,9 +235,9 @@ Kernel::NetworkTest() {
 
         // Wait for the ack from the other machine to the first message we sent
 	postOfficeIn->Receive(1, &inPktHdr, &inMailHdr, buffer);
-        cout << "Got: " << buffer << " : from " << inPktHdr.from << ", box " 
+        std::cout << "Got: " << buffer << " : from " << inPktHdr.from << ", box " 
                                                 << inMailHdr.from << "\n";
-        cout.flush();
+        std::cout.flush();
     }
 
     // Then we're done!

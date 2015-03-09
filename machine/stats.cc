@@ -33,13 +33,13 @@ Statistics::Statistics()
 void
 Statistics::Print()
 {
-    cout << "Ticks: total " << totalTicks << ", idle " << idleTicks;
-		cout << ", system " << systemTicks << ", user " << userTicks <<"\n";
-    cout << "Disk I/O: reads " << numDiskReads;
-		cout << ", writes " << numDiskWrites << "\n";
-		cout << "Console I/O: reads " << numConsoleCharsRead;
-    cout << ", writes " << numConsoleCharsWritten << "\n";
-    cout << "Paging: faults " << numPageFaults << "\n";
-    cout << "Network I/O: packets received " << numPacketsRecvd;
-		cout << ", sent " << numPacketsSent << "\n";
+    std::cout << "Ticks: total " << totalTicks << ", idle " << idleTicks;
+		std::cout << ", system " << systemTicks << ", user " << userTicks <<"\n";
+    std::cout << "Disk I/O: reads " << numDiskReads;
+		std::cout << ", writes " << numDiskWrites << "\n";
+		std::cout << "Console I/O: reads " << numConsoleCharsRead;
+    std::cout << ", writes " << numConsoleCharsWritten << "\n";
+    std::cout << "Paging: faults " << numPageFaults << "\n";
+    std::cout << "Network I/O: packets received " << numPacketsRecvd;
+		std::cout << ", sent " << numPacketsSent << "\n";
 }

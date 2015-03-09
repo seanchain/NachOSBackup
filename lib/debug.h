@@ -49,7 +49,7 @@ extern Debug *debug;
 //----------------------------------------------------------------------
 #define DEBUG(flag,expr)                                                     \
     if (!debug->IsEnabled(flag)) {} else { 				\
-        cerr << expr << "\n";   				        \
+        std::cerr << expr << "\n";   				        \
     }
 
 
@@ -63,7 +63,7 @@ extern Debug *debug;
 //----------------------------------------------------------------------
 #define ASSERT(condition)                                               \
     if (condition) {} else { 						\
-	cerr << "Assertion failed: line " << __LINE__ << " file " << __FILE__ << "\n";      \
+	std::cerr << "Assertion failed: line " << __LINE__ << " file " << __FILE__ << "\n";      \
         Abort();                                                              \
     }
 
@@ -79,7 +79,7 @@ extern Debug *debug;
 
 #define ASSERTNOTREACHED()                                             \
     { 						\
-	cerr << "Assertion failed: line " << __LINE__ << " file " << __FILE__ << "\n";      \
+	std::cerr << "Assertion failed: line " << __LINE__ << " file " << __FILE__ << "\n";      \
         Abort();                                                              \
     }
 
@@ -89,7 +89,7 @@ extern Debug *debug;
 //----------------------------------------------------------------------
 #define UNIMPLEMENTED()                                                      \
 {                                                                            \
-  cerr << "Reached UNIMPLEMENTED function " << __FUNCTION__ << " in file: "  \
+  std::cerr << "Reached UNIMPLEMENTED function " << __FUNCTION__ << " in file: "  \
        << __FILE__ << " line: " << __LINE__ << ".\n";                        \
 }
 

@@ -130,9 +130,9 @@ void Machine::Debugger()
     while (!done) {
       // read commands until we should proceed with more execution
       // prompt for input, giving current simulation time in the prompt
-      cout << kernel->stats->totalTicks << ">";
+      std::cout << kernel->stats->totalTicks << ">";
       // read one line of input (80 chars max)
-      cin.get(buf, 80);
+      std::cin.get(buf, 80);
       if (sscanf(buf, "%d", &num) == 1) {
 	runUntilTime = num;
 	done = TRUE;
@@ -148,20 +148,20 @@ void Machine::Debugger()
 	  done = TRUE;
 	  break;
 	case '?':
-	  cout << "Machine commands:\n";
-	  cout << "    <return>  execute one instruction\n";
-	  cout << "    <number>  run until the given timer tick\n";
-	  cout << "    c         run until completion\n";
-	  cout << "    ?         print help message\n";
+	  std::cout << "Machine commands:\n";
+	  std::cout << "    <return>  execute one instruction\n";
+	  std::cout << "    <number>  run until the given timer tick\n";
+	  std::cout << "    c         run until completion\n";
+	  std::cout << "    ?         print help message\n";
 	  break;
 	default:
-	  cout << "Unknown command: " << buf << "\n";
-	  cout << "Type ? for help.\n";
+	  std::cout << "Unknown command: " << buf << "\n";
+	  std::cout << "Type ? for help.\n";
 	}
       }
       // consume the newline delimiter, which does not get
-      // eaten by cin.get(buf,80) above.
-      buf[0] = cin.get();
+      // eaten by std::cin.get(buf,80) above.
+      buf[0] = std::cin.get();
     }
     delete [] buf;
 }
@@ -177,31 +177,31 @@ Machine::DumpState()
 {
     int i;
     
-    cout << "Machine registers:\n";
+    std::cout << "Machine registers:\n";
     for (i = 0; i < NumGPRegs; i++) {
 	switch (i) {
 	  case StackReg:
-	    cout << "\tSP(" << i << "):\t" << registers[i];
+	    std::cout << "\tSP(" << i << "):\t" << registers[i];
 	    break;
 	    
 	  case RetAddrReg:
-	    cout << "\tRA(" << i << "):\t" << registers[i];
+	    std::cout << "\tRA(" << i << "):\t" << registers[i];
 	    break;
 	  
 	  default:
-	    cout << "\t" << i << ":\t" << registers[i];
+	    std::cout << "\t" << i << ":\t" << registers[i];
 	    break;
 	}
-	if ((i % 4) == 3) { cout << "\n"; }
+	if ((i % 4) == 3) { std::cout << "\n"; }
     }
     
-    cout << "\tHi:\t" << registers[HiReg];
-    cout << "\tLo:\t" << registers[LoReg];
-    cout << "\tPC:\t" << registers[PCReg];
-    cout << "\tNextPC:\t" << registers[NextPCReg];
-    cout << "\tPrevPC:\t" << registers[PrevPCReg];
-    cout << "\tLoad:\t" << registers[LoadReg];
-    cout << "\tLoadV:\t" << registers[LoadValueReg] << "\n";
+    std::cout << "\tHi:\t" << registers[HiReg];
+    std::cout << "\tLo:\t" << registers[LoReg];
+    std::cout << "\tPC:\t" << registers[PCReg];
+    std::cout << "\tNextPC:\t" << registers[NextPCReg];
+    std::cout << "\tPrevPC:\t" << registers[PrevPCReg];
+    std::cout << "\tLoad:\t" << registers[LoadReg];
+    std::cout << "\tLoadV:\t" << registers[LoadValueReg] << "\n";
 }
 
 //----------------------------------------------------------------------

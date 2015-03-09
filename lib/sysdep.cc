@@ -537,10 +537,10 @@ ReadFromSocket(int sockID, char *buffer, int packetSize)
     if (retVal != packetSize) {
         perror("in recvfrom");
 #if defined (CYGWIN) || (__GNUC__ >= 3)
-	cerr << "called with " << packetSize << ", got back " << retVal 
+	std::cerr << "called with " << packetSize << ", got back " << retVal 
 						<< ", and " << "\n";
 #else 	
-        cerr << "called with " << packetSize << ", got back " << retVal 
+    std::cerr << "called with " << packetSize << ", got back " << retVal 
 						<< ", and " << errno << "\n";
 #endif 
     }

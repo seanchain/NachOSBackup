@@ -59,8 +59,8 @@ Machine::Run()
     Instruction *instr = new Instruction;  // storage for decoded instruction
 
     if (debug->IsEnabled('m')) {
-        cout << "Starting program in thread: " << kernel->currentThread->getName();
-	cout << ", at time: " << kernel->stats->totalTicks << "\n";
+        std::cout << "Starting program in thread: " << kernel->currentThread->getName();
+	std::cout << ", at time: " << kernel->stats->totalTicks << "\n";
     }
     kernel->interrupt->setStatus(UserMode);
     for (;;) {
@@ -140,10 +140,10 @@ Machine::OneInstruction(Instruction *instr)
 	char buf[80];
 
         ASSERT(instr->opCode <= MaxOpcode);
-        cout << "At PC = " << registers[PCReg];
+        std::cout << "At PC = " << registers[PCReg];
 	sprintf(buf, str->format, TypeToReg(str->args[0], instr),
 	     TypeToReg(str->args[1], instr), TypeToReg(str->args[2], instr));
-        cout << "\t" << buf << "\n";
+        std::cout << "\t" << buf << "\n";
     }
     
     // Compute next pc, but don't install in case there's an error or branch.

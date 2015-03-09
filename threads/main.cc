@@ -71,7 +71,7 @@ Debug *debug;
 static void 
 Cleanup(int x) 
 {     
-    cerr << "\nCleaning up after signal " << x << "\n";
+    std::cerr << "\nCleaning up after signal " << x << "\n";
     delete kernel; 
 }
 
@@ -203,7 +203,7 @@ main(int argc, char **argv)
 	    i++;
 	}
 	else if (strcmp(argv[i], "-z") == 0) {
-            cout << copyright << "\n";
+            std::cout << copyright << "\n";
 	}
 	else if (strcmp(argv[i], "-x") == 0) {
 	    ASSERT(i + 1 < argc);
@@ -244,13 +244,13 @@ main(int argc, char **argv)
 	}
 #endif //FILESYS_STUB
 	else if (strcmp(argv[i], "-u") == 0) {
-            cout << "Partial usage: nachos [-z -d debugFlags]\n";
-            cout << "Partial usage: nachos [-x programName]\n";
-	    cout << "Partial usage: nachos [-K] [-C] [-N]\n";
+            std::cout << "Partial usage: nachos [-z -d debugFlags]\n";
+            std::cout << "Partial usage: nachos [-x programName]\n";
+	    std::cout << "Partial usage: nachos [-K] [-C] [-N]\n";
 #ifndef FILESYS_STUB
-            cout << "Partial usage: nachos [-cp UnixFile NachosFile]\n";
-            cout << "Partial usage: nachos [-p fileName] [-r fileName]\n";
-            cout << "Partial usage: nachos [-l] [-D]\n";
+            std::cout << "Partial usage: nachos [-cp UnixFile NachosFile]\n";
+            std::cout << "Partial usage: nachos [-p fileName] [-r fileName]\n";
+            std::cout << "Partial usage: nachos [-l] [-D]\n";
 #endif //FILESYS_STUB
 	}
 
@@ -260,7 +260,7 @@ main(int argc, char **argv)
     DEBUG(dbgThread, "Entering main");
 
 #ifdef TUT
-    ::tut::callback * clbk = new tut::reporter(cout);
+    ::tut::callback * clbk = new tut::reporter(std::cout);
     ::tut::runner.get().set_callback(clbk);  
     ::tut::runner.get().run_tests(); //run all unit tests
 #endif 

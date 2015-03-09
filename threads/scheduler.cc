@@ -174,6 +174,6 @@ Scheduler::CheckToBeDestroyed()
 void
 Scheduler::Print()
 {
-    cout << "Ready list contents:\n";
+    std::cout << "Ready list contents:\n";
     readyList->Apply(ThreadPrint);
 }

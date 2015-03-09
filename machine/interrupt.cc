@@ -221,8 +221,8 @@ Interrupt::Idle()
     // is not reached.  Instead, the halt must be invoked by the user program.
 
     DEBUG(dbgInt, "Machine idle.  No interrupts to do.");
-    cout << "No threads ready or runnable, and no pending interrupts.\n";
-    cout << "Assuming the program completed.\n";
+    std::cout << "No threads ready or runnable, and no pending interrupts.\n";
+    std::cout << "Assuming the program completed.\n";
     Halt();
 }
 
@@ -233,7 +233,7 @@ Interrupt::Idle()
 void
 Interrupt::Halt()
 {
-    cout << "Machine halting!\n\n";
+    std::cout << "Machine halting!\n\n";
     kernel->stats->Print();
     delete kernel;	// Never returns.
 }
@@ -330,8 +330,8 @@ Interrupt::CheckIfDue(bool advanceClock)
 static void
 PrintPending (PendingInterrupt *pending)
 {
-    cout << "Interrupt handler "<< intTypeNames[pending->type];
-    cout << ", scheduled at " << pending->when;
+    std::cout << "Interrupt handler "<< intTypeNames[pending->type];
+    std::cout << ", scheduled at " << pending->when;
 }
 
 //----------------------------------------------------------------------
@@ -343,9 +343,9 @@ PrintPending (PendingInterrupt *pending)
 void
 Interrupt::DumpState()
 {
-    cout << "Time: " << kernel->stats->totalTicks;
-    cout << ", interrupts " << intLevelNames[level] << "\n";
-    cout << "Pending interrupts:\n";
+    std::cout << "Time: " << kernel->stats->totalTicks;
+    std::cout << ", interrupts " << intLevelNames[level] << "\n";
+    std::cout << "Pending interrupts:\n";
     pending->Apply(PrintPending);
-    cout << "\nEnd of pending interrupts\n";
+    std::cout << "\nEnd of pending interrupts\n";
 }

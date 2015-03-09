@@ -1,4 +1,0 @@
-hash.o: ../lib/hash.cc ../lib/copyright.h
-list.o: ../lib/list.cc ../lib/copyright.h
-filesys.o: ../filesys/filesys.cc
-openfile.o: ../filesys/openfile.cc

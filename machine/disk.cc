@@ -86,13 +86,13 @@ PrintSector (bool writing, int sector, char *data)
     int *p = (int *) data;
 
     if (writing)
-        cout << "Writing sector: " << sector << "\n"; 
+        std::cout << "Writing sector: " << sector << "\n"; 
     else
-        cout << "Reading sector: " << sector << "\n"; 
+        std::cout << "Reading sector: " << sector << "\n"; 
     for (unsigned int i = 0; i < (SectorSize/sizeof(int)); i++) {
-	cout << p[i] << " ";
+	std::cout << p[i] << " ";
     }
-    cout << "\n"; 
+    std::cout << "\n"; 
 }
 
 //----------------------------------------------------------------------
