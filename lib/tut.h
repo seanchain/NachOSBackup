@@ -422,6 +422,8 @@ namespace tut
     }
   };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
   namespace 
   {
     /**
@@ -501,6 +503,7 @@ namespace tut
       throw failure(msg);
     }
   }
+#pragma GCC diagnostic pop
 
   /**
    * Walks through test tree and stores address of each

@@ -56,7 +56,8 @@ namespace tut
     test_runner_singleton runner;
 }
 
-#endif TUT
+#endif
+/* TUT */
 
 // global variables
 Kernel *kernel;

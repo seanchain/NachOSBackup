@@ -44,7 +44,7 @@
 //	"initialValue" is the initial value of the semaphore.
 //----------------------------------------------------------------------
 
-Semaphore::Semaphore(char* debugName, int initialValue)
+Semaphore::Semaphore(const char* debugName, int initialValue)
 {
     name = debugName;
     value = initialValue;
@@ -155,7 +155,7 @@ Semaphore::SelfTest()
 //	"debugName" is an arbitrary name, useful for debugging.
 //----------------------------------------------------------------------
 
-Lock::Lock(char* debugName)
+Lock::Lock(const char* debugName)
 {
     name = debugName;
     semaphore = new Semaphore("lock", 1);  // initially, unlocked
@@ -210,7 +210,7 @@ void Lock::Release()
 //
 //	"debugName" is an arbitrary name, useful for debugging.
 //----------------------------------------------------------------------
-Condition::Condition(char* debugName)
+Condition::Condition(const char* debugName)
 {
     name = debugName;
     waitQueue = new List<Semaphore *>;

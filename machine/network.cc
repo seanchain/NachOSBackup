@@ -156,7 +156,7 @@ NetworkOutput::CallBack()
 //-----------------------------------------------------------------------
 
 void
-NetworkOutput::Send(PacketHeader hdr, char* data)
+NetworkOutput::Send(PacketHeader hdr, const char *data)
 {
     char toName[32];
 

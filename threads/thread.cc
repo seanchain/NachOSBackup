@@ -33,7 +33,7 @@ const int STACK_FENCEPOST = 0xdedbeef;
 //	"threadName" is an arbitrary string, useful for debugging.
 //----------------------------------------------------------------------
 
-Thread::Thread(char* threadName)
+Thread::Thread(const char* threadName)
 {
     name = threadName;
     stackTop = NULL;

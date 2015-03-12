@@ -205,8 +205,8 @@ Kernel::NetworkTest() {
         int farHost = (hostName == 0 ? 1 : 0); 
         PacketHeader outPktHdr, inPktHdr;
         MailHeader outMailHdr, inMailHdr;
-        char *data = "Hello there!";
-        char *ack = "Got it!";
+        const char *data = "Hello there!";
+        const char *ack = "Got it!";
         char buffer[MaxMailSize];
 
         // construct packet, mail header for original message

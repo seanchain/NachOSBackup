@@ -155,7 +155,7 @@ static int specialTable[] = {
 enum RegType { NONE, RS, RT, RD, EXTRA }; 
 
 struct OpString {
-    char *format;	// Printed version of instruction
+    const char *format;	// Printed version of instruction
     RegType args[3];
 };
 

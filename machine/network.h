@@ -86,7 +86,7 @@ class NetworkOutput : public CallBackObj {
 				// Allocate and initialize network output driver
     ~NetworkOutput();		// De-allocate the network input driver data
     
-    void Send(PacketHeader hdr, char* data);
+    void Send(PacketHeader hdr, const char *data);
     				// Send the packet data to a remote machine,
 				// specified by "hdr".  Returns immediately.
     				// "callWhenDone" is invoked once the next 
