@@ -8,7 +8,7 @@ STRIP = $(GCCDIR)strip
 COFF2NOFF = ../../coff2noff/coff2noff
 
 INCDIR =-I../userprog -I../lib
-CFLAGS = -G 0 -O3 -ggdb -c $(INCDIR)
+CFLAGS = -G 0 -c $(INCDIR)
 
 # list of all application sources
 SOURCES = add.c halt.c matmult.c shell.c sort.c
@@ -64,10 +64,8 @@ distclean: clean
 
 # special targets
 
-start.o: start.s ../userprog/syscall.h
-	$(CPP) $(CPPFLAGS) start.s > strt.s
-	$(AS) $(ASFLAGS) -o start.o strt.s
-	$(RM) strt.s
+start.o: start.S ../userprog/syscall.h
+	$(CC) $(CFLAGS) $(ASFLAGS) -c start.S
 
 # next are automatically generated dependencies
 # DO NOT DELETE

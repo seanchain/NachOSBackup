@@ -200,8 +200,9 @@ DEFINES =  -DFILESYS_STUB -DRDATA -DSIM_FIX -DTUT
 # break the thread system.  You might want to use -fno-inline if
 # you need to call some inline functions from the debugger.
 
-CFLAGS = -ftemplate-depth-100 -Wno-deprecated -g -Wall $(INCPATH) $(DEFINES) $(HOSTCFLAGS) -DCHANGED
-LDFLAGS =
+CFLAGS = -g -Wall $(INCPATH) $(DEFINES) $(HOSTCFLAGS) -DCHANGED -m32
+LDFLAGS = -m32
+CPP_AS_FLAGS = -m32
 
 #####################################################################
 CPP=/lib/cpp
@@ -210,7 +211,7 @@ LD = g++
 AS = as
 RM = /bin/rm
 
-INCPATH = -I../network -I../filesys -I../userprog -I../threads -I../machine -I../lib
+INCPATH = -I../network -I../filesys -I../userprog -I../threads -I../machine -I../lib -iquote
 
 PROGRAM = nachos
 
@@ -322,7 +323,7 @@ NETWORK_O = post.o
 #  you are doing...
 ##################################################################
 
-THREAD_S = ../threads/switch.s
+THREAD_S = ../threads/switch.S
 
 HFILES = $(LIB_H) $(MACHINE_H) $(THREAD_H) $(USERPROG_H) $(FILESYS_H) $(NETWORK_H)
 CFILES = $(LIB_C) $(MACHINE_C) $(THREAD_C) $(USERPROG_C) $(FILESYS_C) $(NETWORK_C)
@@ -338,13 +339,12 @@ $(PROGRAM): $(OFILES)
 $(C_OFILES): %.o:
 	$(CC) $(CFLAGS) -c $<
 
-switch.o: ../threads/switch.s
-	$(CPP) $(CPP_AS_FLAGS) -P $(INCPATH) $(HOSTCFLAGS) ../threads/switch.s > swtch.s
-	$(AS) -o switch.o swtch.s
+switch.o: ../threads/switch.S
+	$(CC) $(CPP_AS_FLAGS) -P $(INCPATH) $(HOSTCFLAGS) -c ../threads/switch.S
 
 depend: $(CFILES) $(HFILES)
 	$(CC) $(INCPATH) $(DEFINES) $(HOSTCFLAGS) -DCHANGED -M $(CFILES) > makedep
-	@echo '/^# DO NOT DELETE THIS LINE/+2,$$d' >eddep
+	@echo '/^# DO NOT DELETE THIS LINE/+1,$$d' >eddep
 	@echo '$$r makedep' >>eddep
 	@echo 'w' >>eddep
 	@echo 'q' >>eddep
@@ -356,7 +356,6 @@ depend: $(CFILES) $(HFILES)
 
 clean:
 	$(RM) -f $(OFILES)
-	$(RM) -f swtch.s
 
 distclean: clean
 	$(RM) -f $(PROGRAM)

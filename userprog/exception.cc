@@ -97,12 +97,12 @@ ExceptionHandler(ExceptionType which)
 	break;
 
       default:
-	cerr << "Unexpected system call " << type << "\n";
+	std::cerr << "Unexpected system call " << type << "\n";
 	break;
       }
       break;
     default:
-      cerr << "Unexpected user mode exception" << (int)which << "\n";
+      std::cerr << "Unexpected user mode exception" << (int)which << "\n";
       break;
     }
     ASSERTNOTREACHED();

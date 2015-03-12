@@ -38,6 +38,8 @@
  of liability and disclaimer of warranty provisions.
  */
 
+#define x86
+
 #include "copyright.h"
 #include "switch.h"
 
@@ -292,8 +294,6 @@ SWITCH
 
 
 
-#ifdef x86
-
         .text
         .align  2
 
@@ -371,8 +371,6 @@ SWITCH:
         movl    _eax_save,%eax
 
         ret
-
-#endif // x86
 
 
 #if defined(ApplePowerPC)

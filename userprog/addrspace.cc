@@ -110,7 +110,7 @@ AddrSpace::Load(char *fileName)
     unsigned int size;
 
     if (executable == NULL) {
-	cerr << "Unable to open file " << fileName << "\n";
+	std::cerr << "Unable to open file " << fileName << "\n";
 	return FALSE;
     }
 
@@ -305,7 +305,7 @@ AddrSpace::Translate(unsigned int vaddr, unsigned int *paddr, int isReadWrite)
 
     ASSERT((*paddr < MemorySize));
 
-    //cerr << " -- AddrSpace::Translate(): vaddr: " << vaddr <<
+    //std::cerr << " -- AddrSpace::Translate(): vaddr: " << vaddr <<
     //  ", paddr: " << *paddr << "\n";
 
     return NoException;

@@ -95,7 +95,7 @@ Thread::Fork(VoidFunctionPtr func, void *arg)
     Scheduler *scheduler = kernel->scheduler;
     IntStatus oldLevel;
     
-    DEBUG(dbgThread, "Forking thread: " << name << " f(a): " << (int) func << " " << arg);
+    DEBUG(dbgThread, "Forking thread: " << name << " f(a): " << (long) func << " " << arg);
     
     StackAllocate(func, arg);
 
@@ -342,7 +342,7 @@ Thread::StackAllocate (VoidFunctionPtr func, void *arg)
     // to go to ThreadRoot when we switch to this thread, the return addres 
     // used in SWITCH() must be the starting address of ThreadRoot.
     stackTop = stack + StackSize - 4;	// -4 to be on the safe side!
-    *(--stackTop) = (int) ThreadRoot;
+    *(--stackTop) = (long) ThreadRoot;
     *stack = STACK_FENCEPOST;
 #endif
     

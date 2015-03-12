@@ -77,7 +77,7 @@ MailBox::~MailBox()
 static void 
 PrintHeader(PacketHeader pktHdr, MailHeader mailHdr)
 {
-    cout << "From (" << pktHdr.from << ", " << mailHdr.from << ") to (" << 
+    std::cout << "From (" << pktHdr.from << ", " << mailHdr.from << ") to (" << 
 	pktHdr.to << ", " << mailHdr.to << ") bytes " << mailHdr.length << "\n";
 }
 
@@ -126,7 +126,7 @@ MailBox::Get(PacketHeader *pktHdr, MailHeader *mailHdr, char *data)
     *pktHdr = mail->pktHdr;
     *mailHdr = mail->mailHdr;
     if (debug->IsEnabled('n')) {
-	cout << "Got mail from mailbox: ";
+	std::cout << "Got mail from mailbox: ";
 	PrintHeader(*pktHdr, *mailHdr);
     }
     bcopy(mail->data, data, mail->mailHdr.length);
@@ -202,7 +202,7 @@ PostOfficeInput::PostalDelivery(void* data)
 
         mailHdr = *(MailHeader *)buffer;
         if (debug->IsEnabled('n')) {
-	    cout << "Putting mail into mailbox: ";
+	    std::cout << "Putting mail into mailbox: ";
 	    PrintHeader(pktHdr, mailHdr);
         }
 
@@ -303,7 +303,7 @@ PostOfficeOutput::Send(PacketHeader pktHdr, MailHeader mailHdr, char* data)
 						// mailHdr + data
 
     if (debug->IsEnabled('n')) {
-	cout << "Post send: ";
+	std::cout << "Post send: ";
 	PrintHeader(pktHdr, mailHdr);
     }
     ASSERT(mailHdr.length <= MaxMailSize);
