@@ -33,7 +33,7 @@ int SysAdd(int op1, int op2)
 int SysRead(int buffer, int size, OpenFileId id)
 {
 	int value;
-	if(id == ConsoleInput){
+	if(id == ConsoleIn){
 		for (int i = 0; i < size; i ++) {
 			value = kernel->synchConsoleIn->GetChar();
 			kernel->machine->WriteMem(buffer++, 1, value);
@@ -45,7 +45,7 @@ int SysRead(int buffer, int size, OpenFileId id)
 int SysWrite(int buffer, int size, OpenFileId id)
 {
 	int value;
-	if(id == ConsoleOutput){
+	if(id == ConsoleOut){
 		for (int i = 0; i < size; i ++) {
                         kernel->machine->ReadMem(buffer++, 1, &value);
 			kernel->synchConsoleOut->PutChar((char)value);

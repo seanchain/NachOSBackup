@@ -23,8 +23,8 @@
 
 #include "copyright.h"
 #include "main.h"
-#include "ksyscall.h"
 #include "syscall.h"
+#include "ksyscall.h"
 //----------------------------------------------------------------------
 // ExceptionHandler
 // 	Entry point into the Nachos kernel.  Called when a user program
@@ -47,160 +47,259 @@
 //	"which" is the kind of exception.  The list of possible exceptions 
 //	is in machine.h.
 //----------------------------------------------------------------------
+// SC_Halt			0
+// SC_Exit			1
+// SC_Exec			2
+// SC_Join			3
+// SC_Create		4
+// SC_Remove    	5
+// SC_Open			6
+// SC_Read			7
+// SC_Write			8
+// SC_Seek     	 	9
+// SC_Close			10
+// SC_Delete       	11
+// SC_ThreadFork	12
+// SC_ThreadYield	13
+// SC_ExecV			14
+// SC_ThreadExit   	15
+// SC_ThreadJoin   	16
+// SC_getSpaceID   	17
+// SC_getThreadID  	18
+// SC_Ipc          	19
+// SC_Clock        	20
+// SC_Add			42
+void ExceptionHandler(ExceptionType which) {
+	int type = kernel->machine->ReadRegister(2);
+	int vaddr = kernel->machine->ReadRegister(BadVAddrReg);
 
-void
-ExceptionHandler(ExceptionType which)
-{
-    int type = kernel->machine->ReadRegister(2);
+	DEBUG(dbgSys, "Received Exception " << which << " type: " << type << "\n");
 
-    DEBUG(dbgSys, "Received Exception " << which << " type: " << type << "\n");
-    switch (which) {
-    case SyscallException:
-      switch(type) {
-      case SC_Halt:
-	DEBUG(dbgSys, "Shutdown, initiated by user program.\n");
+	switch (which) {
+	case PageFaultException:
+			printf("PageFaultException happend with vaddr %d.\n",vaddr);
+			++kernel->stats->numPageFaults;
+			kernel->currentThread->space->SwapIn(vaddr/PageSize);
+			return;
+			ASSERTNOTREACHED();
+			break;
+	case SyscallException:
+		switch (type) {
+		case SC_Halt:
+			DEBUG(dbgSys, "Shutdown, initiated by user program.\n")	;
 
-	SysHalt();
+			SysHalt();
 
-	ASSERTNOTREACHED();
-	break;
-      case SC_Exec:
-      {
-    	  int virtualAddress = kernel->machine->ReadRegister(4);
-    	  DEBUG(dbgSys, "Executive Process Virtual Address " << virtualAddress << "\n");
+			ASSERTNOTREACHED();
+			break;
+		case SC_Exit:
+			do {
+				int result = (int) kernel->machine->ReadRegister(4);
+				printf("\nThe current process exit with code %d!!!\n", result);
+			} while (0);
 
-    	  const int SIZE = 80;
-    	  int temp;
-    	  char processName[SIZE];
-    	  for (int i=0; i<SIZE; i++)
-    	  {
-    		  kernel->machine->ReadMem(virtualAddress++, 1, &temp);
-    		  processName[i] = (char)temp;
-    	  }
-    	  processName[SIZE-1] = '\0';
-    	  DEBUG(dbgSys, "Process Name " << (*processName) << "\n");
+			kernel->machine->WriteRegister(PrevPCReg,
+					kernel->machine->ReadRegister(PCReg));
+			kernel->machine->WriteRegister(PCReg,
+					kernel->machine->ReadRegister(PCReg) + 4);
+			kernel->machine->WriteRegister(NextPCReg,
+					kernel->machine->ReadRegister(PCReg) + 4);
 
+			return;
+			ASSERTNOTREACHED();
+			break;
+		case SC_Exec: {
+			// Read the virtual address of the name of the process from the register R4
+			int virtualAddress = kernel->machine->ReadRegister(4);
+			DEBUG(dbgSys,
+					"Executive Process Virtual Address " << virtualAddress << "\n");
 
-    	  SpaceId pid = SysExec((char*)processName);
-    	  DEBUG(dbgSys, "PID " << pid << "\n");
+			// Read the memory and convert it to process name
+			const int SIZE = 80;
+			int temp;
+			char processName[SIZE];
+			for (int i = 0; i < SIZE; i++) {
+				kernel->machine->ReadMem(virtualAddress++, 1, &temp);
+				processName[i] = (char) temp;
+			}
+			processName[SIZE - 1] = '\0';
+			DEBUG(dbgSys, "Process Name " << (*processName) << "\n");
 
-    	  kernel->machine->WriteRegister(2, (int)pid);
+			/*// Create new address space for this executable file.
+			 AddrSpace* addrSpace = new AddrSpace();
+			 addrSpace->Load((char*)processName);
+			 addrSpace->Execute();*/
 
-    	  {
-    		  kernel->machine->WriteRegister(PrevPCReg, kernel->machine->ReadRegister(PCReg));
+			// Execute the process
+			SpaceId pid = SysExec((char*) processName);
+			DEBUG(dbgSys, "PID " << pid << "\n");
 
-    		  kernel->machine->WriteRegister(PCReg, kernel->machine->ReadRegister(PCReg) + 4);
+			// Write the process ID to the register R2
+			kernel->machine->WriteRegister(2, (int) pid);
 
-    		  kernel->machine->WriteRegister(NextPCReg, kernel->machine->ReadRegister(PCReg)+4);
-    	  }
+			// Modify return point
+			{
+				/* set previous program counter (debugging only)*/
+				kernel->machine->WriteRegister(PrevPCReg,
+						kernel->machine->ReadRegister(PCReg));
 
-    	  return;
+				/* set program counter to next instruction (all Instructions are 4 byte wide)*/
+				kernel->machine->WriteRegister(PCReg,
+						kernel->machine->ReadRegister(PCReg) + 4);
 
-    	  ASSERTNOTREACHED();
+				/* set next program counter for branch execution */
+				kernel->machine->WriteRegister(NextPCReg,
+						kernel->machine->ReadRegister(PCReg) + 4);
+			}
 
-    	  break;
-      }
-      case SC_Join:
-      {
-    	  int pid = kernel->machine->ReadRegister(4);
-    	  DEBUG(dbgSys, "Pid " << pid << "\n");
+			return;
+			ASSERTNOTREACHED();
+			break;
+		}
+		case SC_Join: {
+			// Read the ID of the process from the register R4
+			int pid = kernel->machine->ReadRegister(4);
+			DEBUG(dbgSys, "Pid " << pid << "\n");
 
-    	  int joinResult = SysJoin((SpaceId)pid);
-    	  DEBUG(dbgSys, "Child PID " << joinResult << "\n");
+			// SysJoin Systemcall
+			int joinResult = SysJoin((SpaceId) pid);
+			DEBUG(dbgSys, "Child PID " << joinResult << "\n");
 
-    	  kernel->machine->WriteRegister(2, joinResult);
+			// Write the child PID to the register R2
+			kernel->machine->WriteRegister(2, joinResult);
 
-    	  {
-    		  kernel->machine->WriteRegister(PrevPCReg, kernel->machine->ReadRegister(PCReg));
+			// Modify return point
+			{
+				/* set previous program counter (debugging only)*/
+				kernel->machine->WriteRegister(PrevPCReg,
+						kernel->machine->ReadRegister(PCReg));
 
-    		  kernel->machine->WriteRegister(PCReg, kernel->machine->ReadRegister(PCReg) + 4);
+				/* set program counter to next instruction (all Instructions are 4 byte wide)*/
+				kernel->machine->WriteRegister(PCReg,
+						kernel->machine->ReadRegister(PCReg) + 4);
 
-    		  kernel->machine->WriteRegister(NextPCReg, kernel->machine->ReadRegister(PCReg)+4);
-    	  }
+				/* set next program counter for branch execution */
+				kernel->machine->WriteRegister(NextPCReg,
+						kernel->machine->ReadRegister(PCReg) + 4);
+			}
 
-    	  return;
+			return;
+			ASSERTNOTREACHED();
+			break;
+		}
+		case SC_Read: {
+			// Read the fileAddress, fileSize and fileID from Registers R4, R5, R6
+			int fileAddress = kernel->machine->ReadRegister(4);
+			int fileSize = kernel->machine->ReadRegister(5);
+			int fileID = kernel->machine->ReadRegister(6);
+			DEBUG(dbgSys,
+					"Read " << fileAddress << "+" << fileSize << "+" << fileID << "\n");
 
-    	  ASSERTNOTREACHED();
+			// SysRead Systemcall
+			int readResult = SysRead(fileAddress, fileSize, fileID);
+			DEBUG(dbgSys, "Read Result " << readResult << "\n");
 
-    	  break;
-      }
-      case SC_Read:
-      {
-	int buffer = kernel->machine->ReadRegister(4);
-	int size = kernel->machine->ReadRegister(5);
-	OpenFileId fileID = kernel->machine->ReadRegister(6);
-	DEBUG(dbgSys, "Read " << buffer << " + " << size << " + " << fileID << "\n");
-	int result = SysRead(buffer, size, fileID);
-	kernel->machine->WriteRegister(2, (int)result);
-	{
-            kernel->machine->WriteRegister(PrevPCReg, kernel->machine->ReadRegister(PCReg));
+			// Write the the result to Register R2
+			kernel->machine->WriteRegister(2, readResult);
 
-            kernel->machine->WriteRegister(PCReg, kernel->machine->ReadRegister(PCReg) + 4);
+			// Modify return point
+			{
+				/* set previous program counter (debugging only)*/
+				kernel->machine->WriteRegister(PrevPCReg,
+						kernel->machine->ReadRegister(PCReg));
 
-            kernel->machine->WriteRegister(NextPCReg, kernel->machine->ReadRegister(PCReg)+4);
+				/* set program counter to next instruction (all Instructions are 4 byte wide)*/
+				kernel->machine->WriteRegister(PCReg,
+						kernel->machine->ReadRegister(PCReg) + 4);
+
+				/* set next program counter for branch execution */
+				kernel->machine->WriteRegister(NextPCReg,
+						kernel->machine->ReadRegister(PCReg) + 4);
+			}
+
+			return;
+			ASSERTNOTREACHED();
+			break;
+		}
+		case SC_Write: {
+			// Read the fileAddress, fileSize and fileID from Registers R4, R5, R6
+			int fileAddress = kernel->machine->ReadRegister(4);
+			int fileSize = kernel->machine->ReadRegister(5);
+			int fileID = kernel->machine->ReadRegister(6);
+			DEBUG(dbgSys,
+					"Write " << fileAddress << "+" << fileSize << "+" << fileID << "\n");
+
+			// SysWrite Systemcall
+			int writeResult = SysWrite(fileAddress, fileSize, fileID);
+			DEBUG(dbgSys, "Write Result " << writeResult << "\n");
+
+			// Write the the result to Register R2
+			kernel->machine->WriteRegister(2, writeResult);
+
+			// Modify return point
+			{
+				/* set previous program counter (debugging only)*/
+				kernel->machine->WriteRegister(PrevPCReg,
+						kernel->machine->ReadRegister(PCReg));
+
+				/* set program counter to next instruction (all Instructions are 4 byte wide)*/
+				kernel->machine->WriteRegister(PCReg,
+						kernel->machine->ReadRegister(PCReg) + 4);
+
+				/* set next program counter for branch execution */
+				kernel->machine->WriteRegister(NextPCReg,
+						kernel->machine->ReadRegister(PCReg) + 4);
+			}
+
+			return;
+			ASSERTNOTREACHED();
+			break;
+		}
+		case SC_Add: {
+			DEBUG(dbgSys,
+					"Add " << kernel->machine->ReadRegister(4) << " + " << kernel->machine->ReadRegister(5) << "\n");
+
+			/* Process SysAdd Systemcall*/
+			int result;
+			result = SysAdd(/* int op1 */(int) kernel->machine->ReadRegister(4),
+			/* int op2 */(int) kernel->machine->ReadRegister(5));
+
+			DEBUG(dbgSys, "Add returning with " << result << "\n");
+			/* Prepare Result */
+			kernel->machine->WriteRegister(2, (int) result);
+
+			/* Modify return point */
+			{
+				/* set previous program counter (debugging only)*/
+				kernel->machine->WriteRegister(PrevPCReg,
+						kernel->machine->ReadRegister(PCReg));
+
+				/* set program counter to next instruction (all Instructions are 4 byte wide)*/
+				kernel->machine->WriteRegister(PCReg,
+						kernel->machine->ReadRegister(PCReg) + 4);
+
+				/* set next program counter for branch execution */
+				kernel->machine->WriteRegister(NextPCReg,
+						kernel->machine->ReadRegister(PCReg) + 4);
+			}
+
+			return;
+			ASSERTNOTREACHED();
+			break;
+		}
+		default:
+			cerr << "Unexpected system call " << type << "\n";
+			break;
+		}
+		break;
+	case AddressErrorException:
+		cerr << "WTF!" << "\n";
+		break;
+	default:
+		cerr << "Unexpected user mode exception " << (int) which << "\n";
+		break;
 	}
-	
-	return;
-	ASSERTNOTREACHED();
-      }
-
-      case SC_Write:
-      {
-        int buffer = kernel->machine->ReadRegister(4);
-        int size = kernel->machine->ReadRegister(5);
-        OpenFileId fileID = kernel->machine->ReadRegister(6);
-        DEBUG(dbgSys, "Write " << buffer << " + " << size << " + " << fileID << "\n");
-        int result = SysWrite(buffer, size, fileID);
-        kernel->machine->WriteRegister(2, (int)result);
-        {
-            kernel->machine->WriteRegister(PrevPCReg, kernel->machine->ReadRegister(PCReg));
-
-            kernel->machine->WriteRegister(PCReg, kernel->machine->ReadRegister(PCReg) + 4);
-
-            kernel->machine->WriteRegister(NextPCReg, kernel->machine->ReadRegister(PCReg)+4);
-        }
-
-        return;
-        ASSERTNOTREACHED();
-      }
-      case SC_Add:
-	DEBUG(dbgSys, "Add " << kernel->machine->ReadRegister(4) << " + " << kernel->machine->ReadRegister(5) << "\n");
-	
-	/* Process SysAdd Systemcall*/
-	int result;
-	result = SysAdd(/* int op1 */(int)kernel->machine->ReadRegister(4),
-			/* int op2 */(int)kernel->machine->ReadRegister(5));
-
-	DEBUG(dbgSys, "Add returning with " << result << "\n");
-	/* Prepare Result */
-	kernel->machine->WriteRegister(2, (int)result);
-	
-	/* Modify return point */
-	{
-	  /* set previous programm counter (debugging only)*/
-	  kernel->machine->WriteRegister(PrevPCReg, kernel->machine->ReadRegister(PCReg));
-
-	  /* set programm counter to next instruction (all Instructions are 4 byte wide)*/
-	  kernel->machine->WriteRegister(PCReg, kernel->machine->ReadRegister(PCReg) + 4);
-	  
-	  /* set next programm counter for brach execution */
-	  kernel->machine->WriteRegister(NextPCReg, kernel->machine->ReadRegister(PCReg)+4);
-	}
-
-	return;
-	
-	ASSERTNOTREACHED();
-
-	break;
-
-      default:
-	std::cerr << "Unexpected system call " << type << "\n";
-	break;
-      }
-      break;
-    default:
-      std::cerr << "Unexpected user mode exception" << (int)which << "\n";
-      break;
-    }
-    ASSERTNOTREACHED();
+	ASSERTNOTREACHED()
+	;
 }
+

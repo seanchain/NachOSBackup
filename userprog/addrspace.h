@@ -17,37 +17,63 @@
 #include "filesys.h"
 
 #define UserStackSize		1024 	// increase this as necessary!
-
+using namespace std;
 class AddrSpace {
-  public:
-    AddrSpace();			// Create an address space.
-    ~AddrSpace();			// De-allocate an address space
+public:
+	int UseFreeFrame();
+	int FreeFrame();
+	int NextPageToSwapInplace();
+	void SwapOut(int i);
+	void SwapIn(int i);
+	friend void ExceptionHandler(ExceptionType which);
 
-    bool Load(char *fileName);		// Load a program into addr space from
-                                        // a file
-					// return false if not found
+	AddrSpace();			// Create an address space.
+	~AddrSpace();			// De-allocate an address space
 
-    void Execute();             	// Run a program
-					// assumes the program has already
-                                        // been loaded
+	bool Load(char *fileName);		// Load a program into addr space from a file
+	// return false if not found
 
-    void SaveState();			// Save/restore address space-specific
-    void RestoreState();		// info on a context switch 
+	void Execute();             	// Run a program
+	// assumes the program has already
+	// been loaded
 
-    // Translate virtual address _vaddr_
-    // to physical address _paddr_. _mode_
-    // is 0 for Read, 1 for Write.
-    ExceptionType Translate(unsigned int vaddr, unsigned int *paddr, int mode);
+	void SaveState();			// Save/restore address space-specific
+	void RestoreState();		// info on a context switch
 
-  private:
-    TranslationEntry *pageTable;	// Assume linear page table translation
-					// for now!
-    unsigned int numPages;		// Number of pages in the virtual 
-					// address space
+	// Translate virtual address _vaddr_
+	// to physical address _paddr_. _mode_
+	// is 0 for Read, 1 for Write.
+	ExceptionType Translate(unsigned int vaddr, unsigned int *paddr, int mode);
 
-    void InitRegisters();		// Initialize user-level CPU registers,
-					// before jumping to user code
+private:
+	TranslationEntry *pageTable;	// Assume linear page table translation
+	// for now!
+	unsigned int numPages;		// Number of pages in the virtual
+	// address space
 
+	void InitRegisters();		// Initialize user-level CPU registers,
+	// before jumping to user code
+
+};
+
+struct SwapId {
+	unsigned int processId;
+	unsigned int vpn;
+	char* point;
+
+	SwapId(int pid, int vpnid, char* p = 0) {
+		processId = pid;
+		vpn = vpnid;
+		point = p;
+	}
+
+	~SwapId() {
+		delete[] point;
+	}
+	bool operator==(const SwapId& swap) const {
+		return vpn == swap.vpn && processId == swap.processId;
+	}
+	// now,processes in nachos have no process id.
 };
 
 #endif // ADDRSPACE_H
