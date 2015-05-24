@@ -1,7 +1,9 @@
 // thread.cc 
-//	Routines to manage threads.  These are the main operations:
+//	Routinet gfn=Monaco:h13
+//s to manage threads.  These are the main operations:
 //
-//	Fork -- create a thread to run a procedure concurrently
+//	Forket gfn=Monaco:h13
+//-- create a thread to run a procedure concurrently
 //		with the caller (this is done in two steps -- first
 //		allocate the Thread object, then call Fork on it)
 //	Begin -- called when the forked procedure starts up, to turn
@@ -21,6 +23,8 @@
 #include "switch.h"
 #include "synch.h"
 #include "sysdep.h"
+
+using namespace std;
 
 // this is put at the top of the execution stack, for detecting stack overflows
 const int STACK_FENCEPOST = 0xdedbeef;
@@ -95,7 +99,7 @@ Thread::Fork(VoidFunctionPtr func, void *arg)
     Scheduler *scheduler = kernel->scheduler;
     IntStatus oldLevel;
     
-    DEBUG(dbgThread, "Forking thread: " << name << " f(a): " << (long) func << " " << arg);
+    DEBUG(dbgThread, "Forking thread: " << name << " f(a): " << (int) func << " " << arg);
     
     StackAllocate(func, arg);
 
@@ -342,7 +346,7 @@ Thread::StackAllocate (VoidFunctionPtr func, void *arg)
     // to go to ThreadRoot when we switch to this thread, the return addres 
     // used in SWITCH() must be the starting address of ThreadRoot.
     stackTop = stack + StackSize - 4;	// -4 to be on the safe side!
-    *(--stackTop) = (long) ThreadRoot;
+    *(--stackTop) = (int) ThreadRoot;
     *stack = STACK_FENCEPOST;
 #endif
     
@@ -411,7 +415,7 @@ SimpleThread(int which)
     int num;
     
     for (num = 0; num < 5; num++) {
-	std::cout << "*** thread " << which << " looped " << num << " times\n";
+	cout << "*** thread " << which << " looped " << num << " times\n";
         kernel->currentThread->Yield();
     }
 }
@@ -422,15 +426,81 @@ SimpleThread(int which)
 //	to call SimpleThread, and then calling SimpleThread ourselves.
 //----------------------------------------------------------------------
 
-void
-Thread::SelfTest()
+#define MAX_PRODUCE_NUM 128
+#define N_PROD 16
+#define N_CONS 16
+#define RING_LENGTH 32
+static int count = 0;
+static int front = 0;
+static int rear = 0;
+static int ring[RING_LENGTH];
+
+Semaphore *mutex = new Semaphore("Mutex", 1); //互斥锁
+Semaphore *unfull = new Semaphore("UnFull", RING_LENGTH); //非满信号量
+Semaphore *unempty = new Semaphore("UnEmpty", 0); //非空信号量
+
+static void Producer(void* arg)
+{
+	while(count < MAX_PRODUCE_NUM) {
+		IntStatus old_status = kernel->interrupt->SetLevel(IntOff); //保存之前的状态，然后关中断
+		unfull->P(); //not_full信号量-1，缓冲区数减少
+		mutex->P(); //互斥锁
+		ring[rear]= count; 
+		rear = (rear + 1) % RING_LENGTH; //缓冲区的值移入队列
+		printf("Producer and I put the No.%d product in buffer.\n", count); //打印操作
+		count ++;
+		mutex->V(); //解开互斥锁
+		unempty->V();//产品数增加
+		kernel->interrupt->SetLevel(old_status); //恢复之前的状态
+		kernel->currentThread->Yield();
+	}
+}
+
+static void Consumer(void* arg)
+{
+	while(true) {
+		IntStatus old_status = kernel->interrupt->SetLevel(IntOff);
+		unempty->P(); //not_empty信号量值-1，产品数减少
+		mutex->P(); //上互斥锁
+		printf("Consumer and I take the No.%d product in buffer.\n", ring[front]);
+		// Update the queue
+		front = (front + 1) % RING_LENGTH; //消费者取到值之后，队列front向后移动
+		mutex->V(); //解互斥锁
+		unfull->V(); //缓冲区数增加
+		kernel->interrupt->SetLevel(old_status);
+		kernel->currentThread->Yield();
+	}
+}
+
+void Thread::SelfTest()
 {
     DEBUG(dbgThread, "Entering Thread::SelfTest");
+    //Thread *t = new Thread("forked thread");
+    //t->Fork((VoidFunctionPtr) SimpleThread, (void *) 1);
+    //kernel->currentThread->Yield();
+    //SimpleThread(0);
 
-    Thread *t = new Thread("forked thread");
+    /* it's for synchronization and mutex.*/
+    Thread** prod = (Thread**)malloc(sizeof(Thread*)*N_PROD);
+    Thread** cons = (Thread**)malloc(sizeof(Thread*)*N_CONS);
 
-    t->Fork((VoidFunctionPtr) SimpleThread, (void *) 1);
-    kernel->currentThread->Yield();
-    SimpleThread(0);
+    // Consumers.
+	for(int i = 0; i < N_CONS; ++i){
+		char buf[64];
+		cons[i] = new Thread(buf);
+		cons[i]->Fork((VoidFunctionPtr)Consumer, NULL);
+	}
+
+    // Producers.
+	for(int i = 0; i != N_PROD; ++i){
+		char buf[64];
+		prod[i] = new Thread(buf);
+		prod[i]->Fork((VoidFunctionPtr)Producer, NULL);
+	}
+	
+	while(true){
+		kernel->currentThread->Yield();
+	}
 }
+
 

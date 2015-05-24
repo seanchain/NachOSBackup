@@ -23,8 +23,8 @@
 
 #include "copyright.h"
 #include "main.h"
-#include "syscall.h"
 #include "ksyscall.h"
+#include "syscall.h"
 //----------------------------------------------------------------------
 // ExceptionHandler
 // 	Entry point into the Nachos kernel.  Called when a user program
@@ -54,7 +54,6 @@ ExceptionHandler(ExceptionType which)
     int type = kernel->machine->ReadRegister(2);
 
     DEBUG(dbgSys, "Received Exception " << which << " type: " << type << "\n");
-
     switch (which) {
     case SyscallException:
       switch(type) {
@@ -65,7 +64,105 @@ ExceptionHandler(ExceptionType which)
 
 	ASSERTNOTREACHED();
 	break;
+      case SC_Exec:
+      {
+    	  int virtualAddress = kernel->machine->ReadRegister(4);
+    	  DEBUG(dbgSys, "Executive Process Virtual Address " << virtualAddress << "\n");
 
+    	  const int SIZE = 80;
+    	  int temp;
+    	  char processName[SIZE];
+    	  for (int i=0; i<SIZE; i++)
+    	  {
+    		  kernel->machine->ReadMem(virtualAddress++, 1, &temp);
+    		  processName[i] = (char)temp;
+    	  }
+    	  processName[SIZE-1] = '\0';
+    	  DEBUG(dbgSys, "Process Name " << (*processName) << "\n");
+
+
+    	  SpaceId pid = SysExec((char*)processName);
+    	  DEBUG(dbgSys, "PID " << pid << "\n");
+
+    	  kernel->machine->WriteRegister(2, (int)pid);
+
+    	  {
+    		  kernel->machine->WriteRegister(PrevPCReg, kernel->machine->ReadRegister(PCReg));
+
+    		  kernel->machine->WriteRegister(PCReg, kernel->machine->ReadRegister(PCReg) + 4);
+
+    		  kernel->machine->WriteRegister(NextPCReg, kernel->machine->ReadRegister(PCReg)+4);
+    	  }
+
+    	  return;
+
+    	  ASSERTNOTREACHED();
+
+    	  break;
+      }
+      case SC_Join:
+      {
+    	  int pid = kernel->machine->ReadRegister(4);
+    	  DEBUG(dbgSys, "Pid " << pid << "\n");
+
+    	  int joinResult = SysJoin((SpaceId)pid);
+    	  DEBUG(dbgSys, "Child PID " << joinResult << "\n");
+
+    	  kernel->machine->WriteRegister(2, joinResult);
+
+    	  {
+    		  kernel->machine->WriteRegister(PrevPCReg, kernel->machine->ReadRegister(PCReg));
+
+    		  kernel->machine->WriteRegister(PCReg, kernel->machine->ReadRegister(PCReg) + 4);
+
+    		  kernel->machine->WriteRegister(NextPCReg, kernel->machine->ReadRegister(PCReg)+4);
+    	  }
+
+    	  return;
+
+    	  ASSERTNOTREACHED();
+
+    	  break;
+      }
+      case SC_Read:
+      {
+	int buffer = kernel->machine->ReadRegister(4);
+	int size = kernel->machine->ReadRegister(5);
+	OpenFileId fileID = kernel->machine->ReadRegister(6);
+	DEBUG(dbgSys, "Read " << buffer << " + " << size << " + " << fileID << "\n");
+	int result = SysRead(buffer, size, fileID);
+	kernel->machine->WriteRegister(2, (int)result);
+	{
+            kernel->machine->WriteRegister(PrevPCReg, kernel->machine->ReadRegister(PCReg));
+
+            kernel->machine->WriteRegister(PCReg, kernel->machine->ReadRegister(PCReg) + 4);
+
+            kernel->machine->WriteRegister(NextPCReg, kernel->machine->ReadRegister(PCReg)+4);
+	}
+	
+	return;
+	ASSERTNOTREACHED();
+      }
+
+      case SC_Write:
+      {
+        int buffer = kernel->machine->ReadRegister(4);
+        int size = kernel->machine->ReadRegister(5);
+        OpenFileId fileID = kernel->machine->ReadRegister(6);
+        DEBUG(dbgSys, "Write " << buffer << " + " << size << " + " << fileID << "\n");
+        int result = SysWrite(buffer, size, fileID);
+        kernel->machine->WriteRegister(2, (int)result);
+        {
+            kernel->machine->WriteRegister(PrevPCReg, kernel->machine->ReadRegister(PCReg));
+
+            kernel->machine->WriteRegister(PCReg, kernel->machine->ReadRegister(PCReg) + 4);
+
+            kernel->machine->WriteRegister(NextPCReg, kernel->machine->ReadRegister(PCReg)+4);
+        }
+
+        return;
+        ASSERTNOTREACHED();
+      }
       case SC_Add:
 	DEBUG(dbgSys, "Add " << kernel->machine->ReadRegister(4) << " + " << kernel->machine->ReadRegister(5) << "\n");
 	
