@@ -1,5 +1,5 @@
-// addrspace.h 
-//	Data structures to keep track of executing user programs 
+// addrspace.h
+//	Data structures to keep track of executing user programs
 //	(address spaces).
 //
 //	For now, we don't keep any information about address spaces.
@@ -7,7 +7,7 @@
 //	executing the user program (see thread.h).
 //
 // Copyright (c) 1992-1996 The Regents of the University of California.
-// All rights reserved.  See copyright.h for copyright notice and limitation 
+// All rights reserved.  See copyright.h for copyright notice and limitation
 // of liability and disclaimer of warranty provisions.
 
 #ifndef ADDRSPACE_H
@@ -23,8 +23,7 @@ public:
 	int UseFreeFrame();
 	int FreeFrame();
 	int NextPageToSwapInplace();
-	void SwapOut(int i);
-	void SwapIn(int i);
+	void HandleSwap(int virtualPageNum);
 	friend void ExceptionHandler(ExceptionType which);
 
 	AddrSpace();			// Create an address space.
@@ -73,7 +72,9 @@ struct SwapId {
 	bool operator==(const SwapId& swap) const {
 		return vpn == swap.vpn && processId == swap.processId;
 	}
-	// now,processes in nachos have no process id.
 };
+
+
+
 
 #endif // ADDRSPACE_H

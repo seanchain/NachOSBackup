@@ -16,7 +16,7 @@ static void SwapHeader(NoffHeader *noffH) {
 	WordToHost(noffH->readonlyData.virtualAddr);
 	noffH->readonlyData.inFileAddr =
 	WordToHost(noffH->readonlyData.inFileAddr);
-#endif 
+#endif
 	noffH->initData.size = WordToHost(noffH->initData.size);
 	noffH->initData.virtualAddr = WordToHost(noffH->initData.virtualAddr);
 	noffH->initData.inFileAddr = WordToHost(noffH->initData.inFileAddr);
@@ -95,11 +95,6 @@ bool AddrSpace::Load(char *fileName) {
 		SwapHeader(&noffH);
 	ASSERT(noffH.noffMagic == NOFFMAGIC);
 
-	/* 13.4.30
-	 * for every segment, pagePerSeg is the
-	 * number of pages that it covering,
-	 * and vpn is the first index of those pages.
-	 */
 	unsigned int pagePerSeg, vpn;
 
 	/* code segment. */
@@ -301,8 +296,10 @@ ExceptionType AddrSpace::Translate(unsigned int vaddr, unsigned int *paddr,
 //----------------------------------------------------------
 #include <list>
 using std::list;
-static int referCount[NumPhysPages];
+static int referCount[NumPhysPages]; //记录每一个swapArray对应的索引的链表的长度，即对应的物理页框的数
 list<SwapId*> swapArray[NumPhysPages];
+// 页被置换出来之后，将其保存到一个地方，即一个swapArray数组中，元素的个数等于物理页框的数量，数组中保存的是一个链表，每换出一页，对应的链表
+// 中增加一项，每换出一页，则在对应的链表中减去此项。
 
 int AddrSpace::NextPageToSwapInplace() {
 	int pageNum = -1;
@@ -327,23 +324,35 @@ int AddrSpace::UseFreeFrame() {
 	int i = 0;
 	int frame = -1;
 	for (; i < NumPhysPages; ++i) {
-		if (referCount[i] == 0)
+		if (referCount[i] == 0) // 找到存在空页框的的数组索引
 			break;
 	}
 	if (i < NumPhysPages) {
-		frame = i;
+		frame = i; // 存在， 将结构赋给frame
 	} else {
-		int tmp = NextPageToSwapInplace();
-		if (tmp >= 0) {
-			SwapOut(tmp);
+		int tmp = NextPageToSwapInplace(); // 调用NextPageToSwapInplace方法，获得置换进来的页
+		/*以下为swapOut的过程*/
+		if (tmp >= 0) { // 存在需要swapIn的页
+			unsigned int swapout_frame; // frame
+			swapout_frame = pageTable[tmp].physicalPage; //确定对应的物理页框号
+			cout << "The virtual page " << tmp << "in the frame " << swapout_frame << " was swapped out."; 
+			char *temp = new char[PageSize];
+			memcpy(temp, (kernel->machine->mainMemory + swapout_frame * PageSize), PageSize);
+			// 复制内存区域
+			if (temp == NULL) {
+				cout << "Null" << endl;
+			}
+
+			SwapId *virtualPage = new SwapId(0, tmp, temp);
+			swapArray[swapout_frame].push_back(virtualPage); // 将链表添加到对应的SwapArray的对应的物理页号的链表
+			pageTable[tmp].valid = FALSE;
 			frame = this->pageTable[tmp].physicalPage;
 		} else {
-			// kernel->NextPageToSwapGlobal();
-			ASSERT(-1 > 0); // now, it's ok.
+			ASSERT(-1 > 0); // 抛出ASSERT终止
 		}
 	}
 	++referCount[frame];
-	return frame;
+	return frame; // 将换出的一个对应的物理页框返回
 }
 
 int AddrSpace::FreeFrame() {
@@ -352,43 +361,28 @@ int AddrSpace::FreeFrame() {
 
 Semaphore *lock = new Semaphore("Mutex", 1);
 
-void AddrSpace::SwapOut(int i) {
-	unsigned int frame; // frame
-	frame = pageTable[i].physicalPage;
-	printf("Page %d in frame %d was swaped out.\n", i, frame);
+void AddrSpace::HandleSwap(int virtualPageNum)
+{
+	//抛出页错误异常的时候传入函数中虚拟页的页号
+	unsigned int frame; // 定义页框号
 
-	char *temp = new char[PageSize];
-	memcpy(temp, (kernel->machine->mainMemory + frame * PageSize), PageSize);
-	if (temp == NULL) {
-		cout << "Null" << endl;
-	}
-
-	SwapId *virtualPage = new SwapId(0, i, temp);
-	swapArray[frame].push_back(virtualPage);
-	pageTable[i].valid = FALSE;
-}
-
-void AddrSpace::SwapIn(int i) {
-	unsigned int frame; // frame
-
-	lock->P();
-	frame = this->UseFreeFrame();
-	pageTable[i].physicalPage = frame;
+	lock->P(); //加互斥锁，放置同时换入
+	frame = this->UseFreeFrame(); //获得一个空闲的页框号，用于存放即将swapid的页
+	pageTable[virtualPageNum].physicalPage = frame; //将对应的页表的物理页值赋值为页框号
 	for (int j = 0; j < NumPhysPages; j++) {
-		list<SwapId*>::iterator iter = swapArray[j].begin();
-		while (iter != swapArray[j].end()) {
-			if ((*iter)->vpn == i) {
-				printf("page %d was swaped in frame %d.\n", i, frame);
+		list<SwapId*>::iterator iter = swapArray[j].begin(); //在swapArray数组中的每一个链表中开始遍历
+		while (iter != swapArray[j].end()) { // 链表遍历不结束
+			if ((*iter)->vpn == virtualPageNum) { //虚拟页表号相等，既在对应的页的列表中找到
+				cout << "The page" << virtualPageNum << "has been swapped in frame " << frame << ".." ;
 				memcpy(&(kernel->machine->mainMemory[frame * PageSize]),
 						(*iter)->point, PageSize);
-				pageTable[i].valid = TRUE;
-				iter = swapArray[j].erase(iter);
-				lock->V();
+				pageTable[virtualPageNum].valid = TRUE;
+				iter = swapArray[j].erase(iter); // 从swapArray数组对饮索引的虚拟页链表中中移除掉当前页
+				lock->V(); // 解开互斥锁
 				return;
 			} else {
-				iter++;
+				iter++; // 否则继续向后迭代
 			}
 		}
 	}
 }
-
