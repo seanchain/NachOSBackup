@@ -44,6 +44,7 @@
 #include "machine.h"
 #include "addrspace.h"
 
+#define MaxThreadsNum 128
 // CPU register state to be saved on context switch.  
 // The x86 needs to save only a few registers, 
 // SPARC and MIPS needs to save 10 registers, 
@@ -80,16 +81,18 @@ class Thread {
     // THEY MUST be in this position for SWITCH to work.
     int *stackTop;			 // the current stack pointer
     void *machineState[MachineStateSize];  // all registers except for stackTop
+    int priority;  // Priority of the thread
 
   public:
-    Thread(const char* debugName);		// initialize a Thread 
+    Thread(char* debugName);		// initialize a Thread
+    Thread(char* debugName, int pri);  // initialize a Thread with priority
     ~Thread(); 				// deallocate a Thread
 					// NOTE -- thread being deleted
 					// must not be running when delete 
 					// is called
 
     // basic thread operations
-
+    int getPriority();
     void Fork(VoidFunctionPtr func, void *arg); 
     				// Make thread run (*func)(arg)
     void Yield();  		// Relinquish the CPU if any 
@@ -101,8 +104,8 @@ class Thread {
     
     void CheckOverflow();   	// Check if thread stack has overflowed
     void setStatus(ThreadStatus st) { status = st; }
-    const char* getName() { return (name); }
-    void Print() { std::cout << name; }
+    char* getName() { return (name); }
+    void Print() { cout << name; }
     void SelfTest();		// test whether thread impl is working
 
   private:
@@ -112,7 +115,7 @@ class Thread {
 				// NULL if this is the main thread
 				// (If NULL, don't deallocate stack)
     ThreadStatus status;	// ready, running or blocked
-    const char* name;
+    char* name;
 
     void StackAllocate(VoidFunctionPtr func, void *arg);
     				// Allocate a stack for thread.
@@ -125,6 +128,7 @@ class Thread {
     int userRegisters[NumTotalRegs];	// user-level CPU register state
 
   public:
+    static int threadsNum;
     void SaveUserState();		// save user-level register state
     void RestoreUserState();		// restore user-level register state
 
@@ -148,3 +152,4 @@ void SWITCH(Thread *oldThread, Thread *newThread);
 }
 
 #endif // THREAD_H
+

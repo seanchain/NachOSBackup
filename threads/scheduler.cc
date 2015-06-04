@@ -74,12 +74,23 @@ Scheduler::ReadyToRun (Thread *thread)
 Thread *
 Scheduler::FindNextToRun ()
 {
+	int highestPriority = -1;
+	Thread* highestThread;
     ASSERT(kernel->interrupt->getLevel() == IntOff);
 
     if (readyList->IsEmpty()) {
-	return NULL;
+    	return NULL;
     } else {
-    	return readyList->RemoveFront();
+    	ListIterator<Thread* >*  iterator = new ListIterator<Thread* >(readyList);
+    	while (!iterator->IsDone()) {
+    		if (iterator->Item()->getPriority() > highestPriority) {
+    			highestThread = iterator->Item();
+    			highestPriority = highestThread->getPriority();
+    		}
+    		iterator->Next();
+    	}
+    	readyList->Remove(highestThread);
+    	return highestThread;
     }
 }
 
@@ -109,7 +120,7 @@ Scheduler::Run (Thread *nextThread, bool finishing)
 
     if (finishing) {	// mark that we need to delete current thread
          ASSERT(toBeDestroyed == NULL);
-	 toBeDestroyed = oldThread;
+         toBeDestroyed = oldThread;
     }
     
     if (oldThread->space != NULL) {	// if this thread is a user program,
@@ -174,6 +185,7 @@ Scheduler::CheckToBeDestroyed()
 void
 Scheduler::Print()
 {
-    std::cout << "Ready list contents:\n";
+    cout << "Ready list contents:\n";
     readyList->Apply(ThreadPrint);
 }
+

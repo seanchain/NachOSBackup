@@ -335,7 +335,7 @@ int AddrSpace::UseFreeFrame() {
 		if (tmp >= 0) { // 存在需要swapIn的页
 			unsigned int swapout_frame; // frame
 			swapout_frame = pageTable[tmp].physicalPage; //确定对应的物理页框号
-			cout << "The virtual page " << tmp << "in the frame " << swapout_frame << " was swapped out."; 
+			cout << "The virtual page " << tmp << "in the frame " << swapout_frame << " was swapped out." << endl; 
 			char *temp = new char[PageSize];
 			memcpy(temp, (kernel->machine->mainMemory + swapout_frame * PageSize), PageSize);
 			// 复制内存区域
@@ -373,7 +373,7 @@ void AddrSpace::HandleSwap(int virtualPageNum)
 		list<SwapId*>::iterator iter = swapArray[j].begin(); //在swapArray数组中的每一个链表中开始遍历
 		while (iter != swapArray[j].end()) { // 链表遍历不结束
 			if ((*iter)->vpn == virtualPageNum) { //虚拟页表号相等，既在对应的页的列表中找到
-				cout << "The page" << virtualPageNum << "has been swapped in frame " << frame << ".." ;
+				cout << "The page" << virtualPageNum << "has been swapped in frame " << frame << ".." << endl ;
 				memcpy(&(kernel->machine->mainMemory[frame * PageSize]),
 						(*iter)->point, PageSize);
 				pageTable[virtualPageNum].valid = TRUE;

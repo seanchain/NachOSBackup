@@ -1,9 +1,7 @@
 // thread.cc 
-//	Routinet gfn=Monaco:h13
-//s to manage threads.  These are the main operations:
+//	Routines to manage threads.  These are the main operations:
 //
-//	Forket gfn=Monaco:h13
-//-- create a thread to run a procedure concurrently
+//	Fork -- create a thread to run a procedure concurrently
 //		with the caller (this is done in two steps -- first
 //		allocate the Thread object, then call Fork on it)
 //	Begin -- called when the forked procedure starts up, to turn
@@ -24,8 +22,6 @@
 #include "synch.h"
 #include "sysdep.h"
 
-using namespace std;
-
 // this is put at the top of the execution stack, for detecting stack overflows
 const int STACK_FENCEPOST = 0xdedbeef;
 
@@ -36,17 +32,49 @@ const int STACK_FENCEPOST = 0xdedbeef;
 //
 //	"threadName" is an arbitrary string, useful for debugging.
 //----------------------------------------------------------------------
-
-Thread::Thread(const char* threadName)
+int Thread::threadsNum = 0;
+Thread::Thread(char* threadName)
 {
+	if (++threadsNum > MaxThreadsNum) {
+				DEBUG(dbgSys, "Thread Name: " << threadName << " Threads Number: " << threadsNum << "\n");
+				cout << "Threads Number overflow!" << endl;
+				ASSERT(threadsNum <= MaxThreadsNum);
+	}
+	DEBUG(dbgSys, "Thread Name: " << threadName << " created\n");
+	cout << "Thread Name: " << threadName << " created"  << endl;
+	priority= 0;
     name = threadName;
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;
     for (int i = 0; i < MachineStateSize; i++) {
-	machineState[i] = NULL;		// not strictly necessary, since
-					// new thread ignores contents 
-					// of machine registers
+    	machineState[i] = NULL;		// not strictly necessary, since
+															// new thread ignores contents
+															// of machine registers
+    }
+    space = NULL;
+}
+
+Thread::Thread(char* threadName, int pri)
+{
+	if (++threadsNum > MaxThreadsNum) {
+			DEBUG(dbgSys, "Threads Name: " << threadName << " Threads Number: " << threadsNum << "\n");
+			cout << "Threads Number overflow!" << endl;
+			ASSERT(threadsNum <= MaxThreadsNum);
+	}
+
+	if (pri < 0) 	pri = 0;
+	DEBUG(dbgSys, "Thread Name: " << threadName << " created, Priority: " << pri << "\n");
+	cout << "Thread Name: " << threadName << " created, Priority: " << pri << endl;
+	priority = pri;
+    name = threadName;
+    stackTop = NULL;
+    stack = NULL;
+    status = JUST_CREATED;
+    for (int i = 0; i < MachineStateSize; i++) {
+		machineState[i] = NULL;		// not strictly necessary, since
+															// new thread ignores contents
+															// of machine registers
     }
     space = NULL;
 }
@@ -69,7 +97,9 @@ Thread::~Thread()
 
     ASSERT(this != kernel->currentThread);
     if (stack != NULL)
-	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
+    	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
+
+    threadsNum--;
 }
 
 //----------------------------------------------------------------------
@@ -212,11 +242,15 @@ Thread::Yield ()
     
     DEBUG(dbgThread, "Yielding thread: " << name);
     
-    nextThread = kernel->scheduler->FindNextToRun();
+    /*nextThread = kernel->scheduler->FindNextToRun();
     if (nextThread != NULL) {
-	kernel->scheduler->ReadyToRun(this);
-	kernel->scheduler->Run(nextThread, FALSE);
-    }
+		kernel->scheduler->ReadyToRun(this);
+		kernel->scheduler->Run(nextThread, FALSE);
+    }*/
+    kernel->scheduler->ReadyToRun(this);
+    nextThread = kernel->scheduler->FindNextToRun();
+    kernel->scheduler->Run(nextThread, FALSE);
+
     (void) kernel->interrupt->SetLevel(oldLevel);
 }
 
@@ -252,7 +286,7 @@ Thread::Sleep (bool finishing)
 
     status = BLOCKED;
     while ((nextThread = kernel->scheduler->FindNextToRun()) == NULL)
-	kernel->interrupt->Idle();	// no one to run, wait for an interrupt
+    	kernel->interrupt->Idle();	// no one to run, wait for an interrupt
     
     // returns when it's time for us to run
     kernel->scheduler->Run(nextThread, finishing); 
@@ -399,6 +433,14 @@ Thread::RestoreUserState()
 	kernel->machine->WriteRegister(i, userRegisters[i]);
 }
 
+//----------------------------------------------------------------------
+// getPriority
+// 	Get the priority of the thread.
+//----------------------------------------------------------------------
+int
+Thread::getPriority() {
+	return priority;
+}
 
 //----------------------------------------------------------------------
 // SimpleThread
@@ -415,7 +457,7 @@ SimpleThread(int which)
     int num;
     
     for (num = 0; num < 5; num++) {
-	cout << "*** thread " << which << " looped " << num << " times\n";
+    	cout << "*** thread " << which << " looped " << num << " times\n";
         kernel->currentThread->Yield();
     }
 }
@@ -435,23 +477,22 @@ static int front = 0;
 static int rear = 0;
 static int ring[RING_LENGTH];
 
-Semaphore *mutex = new Semaphore("Mutex", 1); //互斥锁
-Semaphore *unfull = new Semaphore("UnFull", RING_LENGTH); //非满信号量
-Semaphore *unempty = new Semaphore("UnEmpty", 0); //非空信号量
+Semaphore *mutex = new Semaphore("Mutex", 1);
+Semaphore *not_full = new Semaphore("NotFull", RING_LENGTH);
+Semaphore *not_empty = new Semaphore("NotEmpty", 0);
 
 static void Producer(void* arg)
 {
 	while(count < MAX_PRODUCE_NUM) {
-		IntStatus old_status = kernel->interrupt->SetLevel(IntOff); //保存之前的状态，然后关中断
-		unfull->P(); //not_full信号量-1，缓冲区数减少
-		mutex->P(); //互斥锁
-		ring[rear]= count; 
-		rear = (rear + 1) % RING_LENGTH; //缓冲区的值移入队列
-		printf("Producer and I put the No.%d product in buffer.\n", count); //打印操作
-		count ++;
-		mutex->V(); //解开互斥锁
-		unempty->V();//产品数增加
-		kernel->interrupt->SetLevel(old_status); //恢复之前的状态
+		IntStatus old = kernel->interrupt->SetLevel(IntOff);
+		not_full->P();
+		mutex->P();
+		ring[rear]= count;
+		rear = (rear+1)%RING_LENGTH;
+		printf("Producer and I put the No.%d product in buffer.\n", count++);
+		mutex->V();
+		not_empty->V();
+		kernel->interrupt->SetLevel(old);
 		kernel->currentThread->Yield();
 	}
 }
@@ -459,19 +500,19 @@ static void Producer(void* arg)
 static void Consumer(void* arg)
 {
 	while(true) {
-		IntStatus old_status = kernel->interrupt->SetLevel(IntOff);
-		unempty->P(); //not_empty信号量值-1，产品数减少
-		mutex->P(); //上互斥锁
+		IntStatus old = kernel->interrupt->SetLevel(IntOff);
+		not_empty->P();
+		mutex->P();
 		printf("Consumer and I take the No.%d product in buffer.\n", ring[front]);
-		// Update the queue
-		front = (front + 1) % RING_LENGTH; //消费者取到值之后，队列front向后移动
-		mutex->V(); //解互斥锁
-		unfull->V(); //缓冲区数增加
-		kernel->interrupt->SetLevel(old_status);
+		front = (front+1)%RING_LENGTH;
+		mutex->V();
+		not_full->V();
+		kernel->interrupt->SetLevel(old);
 		kernel->currentThread->Yield();
 	}
 }
 
+/*
 void Thread::SelfTest()
 {
     DEBUG(dbgThread, "Entering Thread::SelfTest");
@@ -480,13 +521,14 @@ void Thread::SelfTest()
     //kernel->currentThread->Yield();
     //SimpleThread(0);
 
-    /* it's for synchronization and mutex.*/
+    // it's for synchronization and mutex.
     Thread** prod = (Thread**)malloc(sizeof(Thread*)*N_PROD);
     Thread** cons = (Thread**)malloc(sizeof(Thread*)*N_CONS);
 
     // Consumers.
 	for(int i = 0; i < N_CONS; ++i){
 		char buf[64];
+		sprintf(buf,"consumer thread %d.\n",i);
 		cons[i] = new Thread(buf);
 		cons[i]->Fork((VoidFunctionPtr)Consumer, NULL);
 	}
@@ -494,13 +536,41 @@ void Thread::SelfTest()
     // Producers.
 	for(int i = 0; i != N_PROD; ++i){
 		char buf[64];
+		sprintf(buf, "producer thread %d.\n",i);
 		prod[i] = new Thread(buf);
 		prod[i]->Fork((VoidFunctionPtr)Producer, NULL);
 	}
-	
+
+	// Nachos的主线程退出了，会不会导致其他线程也退出，像Linux一样？
+	// 或者在这里把主线程也作为一个Producer|Consumer，参与同步互斥，
+	// 与整个过程同时结束。
 	while(true){
 		kernel->currentThread->Yield();
 	}
-}
+}*/
 
+void Thread::SelfTest()
+{
+    DEBUG(dbgThread, "Entering Thread::SelfTest");
+
+    /*
+    cout << "---------- Max Threads Number Test ----------" << endl;
+    Thread* temp[MaxThreadsNum+1];
+    for (int i=0; i<MaxThreadsNum+1; i++) {
+    	temp[i] = new Thread("Test Thread");
+    }
+    delete temp;*/
+
+    cout << "---------- Threads Priority Test ----------" << endl;
+    Thread *thread1 = new Thread("Thread No.1", 5);
+    Thread *thread2 = new Thread("Thread No.2", 7);
+    Thread *thread3 = new Thread("Thread No.3", 3);
+
+    thread1->Fork((VoidFunctionPtr) SimpleThread, (void *) 1);
+    thread2->Fork((VoidFunctionPtr) SimpleThread, (void *) 2);
+    thread3->Fork((VoidFunctionPtr) SimpleThread, (void *) 3);
+
+    kernel->currentThread->Yield();
+    // SimpleThread(0);
+}
 
